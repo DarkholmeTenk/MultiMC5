@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,4 +36,5 @@ extern const QString LITELOADER_URL;
 extern const QString IMGUR_BASE_URL;
 extern const QString FMLLIBS_OUR_BASE_URL;
 extern const QString FMLLIBS_FORGE_BASE_URL;
+extern const QString TRANSLATIONS_BASE_URL;
 }

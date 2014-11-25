@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,5 +63,4 @@ private:
 	VersionSelectProxyModel *m_proxyModel;
 
 	int resizeOnColumn = 0;
-	bool m_useLatest;
 };

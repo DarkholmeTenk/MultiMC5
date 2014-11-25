@@ -1,4 +1,4 @@
-/* Copyright 2014 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ namespace Ui
 {
 class LogPage;
 }
+class QTextCharFormat;
 
 class LogPage : public QWidget, public BasePage
 {
@@ -51,19 +52,9 @@ public:
 	virtual bool apply();
 	virtual QString helpPage() const override
 	{
-		return "Minecraft-Log";
+		return "Minecraft-Logs";
 	}
 	virtual bool shouldDisplay() const;
-
-private:
-	/**
-	 * @brief write a colored paragraph
-	 * @param data the string
-	 * @param color the css color name
-	 * this will only insert a single paragraph.
-	 * \n are ignored. a real \n is always appended.
-	 */
-	void writeColor(QString text, const char *color, const char *background);
 
 private slots:
 	/**
@@ -77,10 +68,20 @@ private slots:
 	void on_btnCopy_clicked();
 	void on_btnClear_clicked();
 
+	void on_trackLogCheckbox_clicked(bool checked);
+
+	void on_findButton_clicked();
+	void findActivated();
+	void findNextActivated();
+	void findPreviousActivated();
+
 private:
 	Ui::LogPage *ui;
 	MinecraftProcess *m_process;
 	int m_last_scroll_value = 0;
 	bool m_scroll_active = true;
 	int m_saved_offset = 0;
+	bool m_write_active = true;
+
+	QTextCharFormat * defaultFormat;
 };

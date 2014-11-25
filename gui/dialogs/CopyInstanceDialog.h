@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ public:
 	void updateDialogState();
 
 	QString instName() const;
+	QString instGroup() const;
 	QString iconKey() const;
 
 private

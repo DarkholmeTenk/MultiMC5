@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ public:
 	}
 	virtual QIcon icon() const
 	{
-		return QIcon::fromTheme("plugin-red");
+		return QIcon::fromTheme("jarmods");
 	}
 	virtual QString id() const
 	{

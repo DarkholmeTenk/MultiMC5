@@ -1,4 +1,4 @@
-/* Copyright 2014 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,7 +63,8 @@ public:
 			QIcon icon = m_pages.at(index.row())->icon();
 			if (icon.isNull())
 				icon = m_emptyIcon;
-			return icon;
+			// HACK: fixes icon stretching on windows. TODO: report Qt bug for this
+			return QIcon(icon.pixmap(QSize(48,48)));
 		}
 		}
 		return QVariant();

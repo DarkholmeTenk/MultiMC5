@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,10 +82,10 @@ QVariant BaseVersionList::headerData(int section, Qt::Orientation orientation, i
 		switch (section)
 		{
 		case NameColumn:
-			return "Name";
+			return tr("Name");
 
 		case TypeColumn:
-			return "Type";
+			return tr("Type");
 
 		default:
 			return QVariant();
@@ -95,10 +95,10 @@ QVariant BaseVersionList::headerData(int section, Qt::Orientation orientation, i
 		switch (section)
 		{
 		case NameColumn:
-			return "The name of the version.";
+			return tr("The name of the version.");
 
 		case TypeColumn:
-			return "The version's type.";
+			return tr("The version's type.");
 
 		default:
 			return QVariant();

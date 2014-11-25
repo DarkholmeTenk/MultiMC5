@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,10 +57,10 @@ QVariant LWJGLVersionList::headerData(int section, Qt::Orientation orientation, 
 	switch (role)
 	{
 	case Qt::DisplayRole:
-		return "Version";
+		return tr("Version");
 
 	case Qt::ToolTipRole:
-		return "LWJGL version name.";
+		return tr("LWJGL version name.");
 
 	default:
 		return QVariant();

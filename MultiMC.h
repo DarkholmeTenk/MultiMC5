@@ -24,6 +24,7 @@ class StatusChecker;
 class BaseProfilerFactory;
 class BaseDetachedToolFactory;
 class URNResolver;
+class TranslationDownloader;
 
 #if defined(MMC)
 #undef MMC
@@ -40,9 +41,6 @@ enum UpdateFlag
 Q_DECLARE_FLAGS(UpdateFlags, UpdateFlag);
 Q_DECLARE_OPERATORS_FOR_FLAGS(UpdateFlags);
 
-// Global var used by the crash handling system to determine if a log file should be included in a crash report.
-extern bool loggerInitialized;
-
 class MultiMC : public QApplication
 {
 	Q_OBJECT
@@ -55,7 +53,7 @@ public:
 	};
 
 public:
-	MultiMC(int &argc, char **argv, bool root_override = false);
+	MultiMC(int &argc, char **argv, bool test_mode = false);
 	virtual ~MultiMC();
 
 	std::shared_ptr<SettingsObject> settings()
@@ -181,7 +179,7 @@ private slots:
 private:
 	void initLogger();
 
-	void initGlobalSettings();
+	void initGlobalSettings(bool test_mode);
 
 	void initHttpMetaCache();
 
@@ -209,6 +207,7 @@ private:
 	std::shared_ptr<MinecraftVersionList> m_minecraftlist;
 	std::shared_ptr<JavaVersionList> m_javalist;
 	std::shared_ptr<URNResolver> m_resolver;
+	std::shared_ptr<TranslationDownloader> m_translationChecker;
 
 	QMap<QString, std::shared_ptr<BaseProfilerFactory>> m_profilers;
 	QMap<QString, std::shared_ptr<BaseDetachedToolFactory>> m_tools;

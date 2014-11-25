@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@
 // This is a hack, but I can't think of a better way to do this easily without screwing with QTextDocument...
 QString getCreditsHtml(QStringList patrons)
 {
-	QString creditsHtml =
+	QString creditsHtml = QObject::tr(
 		"<!DOCTYPE HTML PUBLIC '-//W3C//DTD HTML 4.0//EN' 'http://www.w3.org/TR/REC-html40/strict.dtd'>"
 		"<html>"
 		""
@@ -56,9 +56,9 @@ QString getCreditsHtml(QStringList patrons)
 		"%1"
 		""
 		"</body>"
-		"</html>";
+		"</html>");
 	if (patrons.isEmpty())
-		return creditsHtml.arg("<p>Loading...</p>");
+		return creditsHtml.arg(QObject::tr("<p>Loading...</p>"));
 	else
 	{
 		QString patronsStr;
@@ -81,7 +81,7 @@ AboutDialog::AboutDialog(QWidget *parent) : QDialog(parent), ui(new Ui::AboutDia
 
 	ui->urlLabel->setOpenExternalLinks(true);
 
-	ui->icon->setPixmap(QIcon(":/icons/multimc/scalable/apps/multimc.svg").pixmap(64));
+	ui->icon->setPixmap(QIcon::fromTheme("multimc").pixmap(64));
 	ui->title->setText("MultiMC 5 " + BuildConfig.printableVersionString());
 
 	ui->versionLabel->setText(tr("Version") +": " + BuildConfig.printableVersionString());

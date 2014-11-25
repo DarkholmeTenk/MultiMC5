@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,10 +53,10 @@ QList<BasePage *> LegacyInstance::getPages()
 	// FIXME: actually implement the legacy instance upgrade, then enable this.
 	//values.append(new LegacyUpgradePage(this));
 	values.append(new LegacyJarModPage(this));
-	values.append(new ModFolderPage(this, loaderModList(), "mods", "plugin-blue", tr("Loader mods"),
+	values.append(new ModFolderPage(this, loaderModList(), "mods", "loadermods", tr("Loader mods"),
 									"Loader-mods"));
-	values.append(new ModFolderPage(this, coreModList(), "coremods", "plugin-green", tr("Core mods"),
-									"Core-mods"));
+	values.append(new ModFolderPage(this, coreModList(), "coremods", "coremods", tr("Core mods"),
+									"Loader-mods"));
 	values.append(new TexturePackPage(this));
 	values.append(new NotesPage(this));
 	values.append(new ScreenshotsPage(this));

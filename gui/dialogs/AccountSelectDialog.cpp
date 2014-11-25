@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,8 @@ AccountSelectDialog::AccountSelectDialog(const QString &message, int flags, QWid
 
 	// Select the first entry in the list.
 	ui->listView->setCurrentIndex(ui->listView->model()->index(0, 0));
+
+	connect(ui->listView, SIGNAL(doubleClicked(QModelIndex)), SLOT(on_buttonBox_accepted()));
 }
 
 AccountSelectDialog::~AccountSelectDialog()
@@ -72,8 +74,7 @@ void AccountSelectDialog::on_buttonBox_accepted()
 	if (selection.size() > 0)
 	{
 		QModelIndex selected = selection.first();
-		MojangAccountPtr account = selected.data(MojangAccountList::PointerRole).value<MojangAccountPtr>();
-		m_selected = account;
+		m_selected = selected.data(MojangAccountList::PointerRole).value<MojangAccountPtr>();
 	}
 	close();
 }

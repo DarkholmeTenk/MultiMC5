@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Authors: Andrew Okin
  *          Peterix
@@ -121,7 +121,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	setWindowTitle(winTitle);
 
 	// OSX magic.
-	// setUnifiedTitleAndToolBarOnMac(true);
+	setUnifiedTitleAndToolBarOnMac(true);
 
 	// Global shortcuts
 	{
@@ -286,6 +286,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 				auto meta = MMC->metacache()->resolveEntry("skins", profile.name + ".png");
 				auto action = CacheDownload::make(
 					QUrl("http://" + URLConstants::SKINS_BASE + profile.name + ".png"), meta);
+				action->m_followRedirects = true;
 				skin_dls.append(action);
 				meta->stale = true;
 			}
@@ -733,11 +734,6 @@ void MainWindow::setCatBackground(bool enabled)
 
 void MainWindow::on_actionAddInstance_triggered()
 {
-#ifdef TEST_SEGV
-	// For further testing stuff.
-	int v = *((int *)-1);
-#endif
-
 	if (!MMC->minecraftlist()->isLoaded() && m_versionLoadTask &&
 		m_versionLoadTask->isRunning())
 	{
@@ -750,6 +746,8 @@ void MainWindow::on_actionAddInstance_triggered()
 	NewInstanceDialog newInstDlg(this);
 	if (!newInstDlg.exec())
 		return;
+
+	MMC->settings()->set("LastUsedGroupForNewInstance", newInstDlg.instGroup());
 
 	InstancePtr newInstance;
 
@@ -764,10 +762,14 @@ void MainWindow::on_actionAddInstance_triggered()
 	switch (error)
 	{
 	case InstanceFactory::NoCreateError:
+	{
 		newInstance->setName(newInstDlg.instName());
 		newInstance->setIconKey(newInstDlg.iconKey());
+		newInstance->setGroupInitial(newInstDlg.instGroup());
 		MMC->instances()->add(InstancePtr(newInstance));
+		stringToIntList(MMC->settings()->get("ShownNotifications").toString());
 		break;
+	}
 
 	case InstanceFactory::InstExists:
 	{
@@ -836,6 +838,7 @@ void MainWindow::on_actionCopyInstance_triggered()
 	{
 	case InstanceFactory::NoCreateError:
 		newInstance->setName(copyInstDlg.instName());
+		newInstance->setGroupInitial(copyInstDlg.instGroup());
 		newInstance->setIconKey(copyInstDlg.iconKey());
 		MMC->instances()->add(newInstance);
 		return;
@@ -1479,6 +1482,16 @@ void MainWindow::checkSetDefaultJava()
 		}
 		QString currentJavaPath = MMC->settings()->get("JavaPath").toString();
 		if (currentJavaPath.isEmpty())
+		{
+			askForJava = true;
+			break;
+		}
+		if(!currentJavaPath.contains('/'))
+		{
+			currentJavaPath = QStandardPaths::findExecutable(currentJavaPath);
+		}
+		QFile currentJavaBin(currentJavaPath);
+		if(!currentJavaBin.exists())
 		{
 			askForJava = true;
 			break;

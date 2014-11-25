@@ -77,37 +77,13 @@ if(${BIGENDIAN})
 	add_definitions(-DMULTIMC_BIG_ENDIAN)
 endif(${BIGENDIAN})
 
-
-######## Dark magic crash reports ########
-option(MultiMC_HANDLE_SEGV "Handle fatal crashes and generate crash reports." OFF)
-set(CRASH_HANDLER_IMPL "")
-message(STATUS "Crash dumps are ${MultiMC_HANDLE_SEGV}")
-if (MultiMC_HANDLE_SEGV)
-	add_definitions(-DHANDLE_SEGV)
-	if (WIN32)
-		find_package(DbgHelp)
-		set(MultiMC_LINK_ADDITIONAL_LIBS "${MultiMC_LINK_ADDITIONAL_LIBS}dbghelp")
-		set(MultiMC_CRASH_HANDLER_EXTRA_H "WinBacktrace.h")
-		set(MultiMC_CRASH_HANDLER_EXTRA_CPP "WinBacktrace.cpp")
-	endif ()
-endif ()
-
-option(MultiMC_TEST_SEGV "Intentionally segfault sometimes to test crash handling." OFF)
-if (MultiMC_TEST_SEGV)
-	# TODO: Make this a unit test instead.
-	message(WARNING "You have enabled crash handler testing. MULTIMC WILL INTENTIONALLY CRASH ITSELF. Crashes should occur on exit and when the new instance button is pressed.")
-	add_definitions(-DTEST_SEGV)
-endif ()
-
-
 ######## Set URLs ########
 set(MultiMC_NEWS_RSS_URL "http://multimc.org/rss.xml" CACHE STRING "URL to fetch MultiMC's news RSS feed from.")
 
-
 ######## Set version numbers ########
 set(MultiMC_VERSION_MAJOR	 0)
-set(MultiMC_VERSION_MINOR	 5)
-set(MultiMC_VERSION_HOTFIX   0)
+set(MultiMC_VERSION_MINOR	 4)
+set(MultiMC_VERSION_HOTFIX   5)
 
 # Build number
 set(MultiMC_VERSION_BUILD -1 CACHE STRING "Build number. -1 for no build number.")
@@ -142,9 +118,6 @@ if(MultiMC_VERSION_TYPE STREQUAL "Custom")
 elseif(MultiMC_VERSION_TYPE STREQUAL "Release")
 	message(STATUS "Version Type: Stable Release")
 	set(MultiMC_VERSION_STRING "${MultiMC_RELEASE_VERSION_NAME}")
-elseif(MultiMC_VERSION_TYPE STREQUAL "ReleaseCandidate")
-	message(STATUS "Version Type: Release Candidate")
-	set(MultiMC_VERSION_STRING "${MultiMC_RELEASE_VERSION_NAME}-rc${MultiMC_VERSION_BUILD}")
 elseif(MultiMC_VERSION_TYPE STREQUAL "Development")
 	message(STATUS "Version Type: Development")
 	set(MultiMC_VERSION_STRING "${MultiMC_RELEASE_VERSION_NAME}-dev${MultiMC_VERSION_BUILD}")
@@ -215,11 +188,11 @@ if(UNIX AND APPLE)
 	set(MACOSX_BUNDLE_BUNDLE_NAME "MultiMC")
 	set(MACOSX_BUNDLE_INFO_STRING "MultiMC Minecraft launcher and management utility.")
 	set(MACOSX_BUNDLE_GUI_IDENTIFIER "org.multimc.MultiMC5")
-	set(MACOSX_BUNDLE_BUNDLE_VERSION "${MultiMC_VERSION_MAJOR}.${MultiMC_VERSION_MINOR}.${MultiMC_VERSION_REV}.${MultiMC_VERSION_BUILD}")
-	set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${MultiMC_VERSION_MAJOR}.${MultiMC_VERSION_MINOR}.${MultiMC_VERSION_REV}.${MultiMC_VERSION_BUILD}")
-	set(MACOSX_BUNDLE_LONG_VERSION_STRING "${MultiMC_VERSION_MAJOR}.${MultiMC_VERSION_MINOR}.${MultiMC_VERSION_REV}.${MultiMC_VERSION_BUILD}")
+	set(MACOSX_BUNDLE_BUNDLE_VERSION "${MultiMC_VERSION_MAJOR}.${MultiMC_VERSION_MINOR}.${MultiMC_VERSION_HOTFIX}.${MultiMC_VERSION_BUILD}")
+	set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${MultiMC_VERSION_MAJOR}.${MultiMC_VERSION_MINOR}.${MultiMC_VERSION_HOTFIX}.${MultiMC_VERSION_BUILD}")
+	set(MACOSX_BUNDLE_LONG_VERSION_STRING "${MultiMC_VERSION_MAJOR}.${MultiMC_VERSION_MINOR}.${MultiMC_VERSION_HOTFIX}.${MultiMC_VERSION_BUILD}")
 	set(MACOSX_BUNDLE_ICON_FILE MultiMC.icns)
-	set(MACOSX_BUNDLE_COPYRIGHT "Copyright 2013 MultiMC Contributors")
+	set(MACOSX_BUNDLE_COPYRIGHT "Copyright 2014 MultiMC Contributors")
 elseif(UNIX)
 	set(BINARY_DEST_DIR bin)
 	set(PLUGIN_DEST_DIR plugins)
@@ -278,12 +251,6 @@ SET(MULTIMC_SOURCES
 	MMCError.h
 	BuildConfig.h
 	${PROJECT_BINARY_DIR}/BuildConfig.cpp
-
-	# Crash handling
-	HandleCrash.h
-	HandleCrash.cpp
-	${MultiMC_CRASH_HANDLER_EXTRA_H} # Extra platform specific stuff
-	${MultiMC_CRASH_HANDLER_EXTRA_CPP}
 
 	# Logging
 	logger/QsDebugOutput.cpp
@@ -651,6 +618,10 @@ SET(MULTIMC_SOURCES
 	logic/liteloader/LiteLoaderInstaller.cpp
 	logic/liteloader/LiteLoaderVersionList.h
 	logic/liteloader/LiteLoaderVersionList.cpp
+
+	# Translations
+	logic/trans/TranslationDownloader.h
+	logic/trans/TranslationDownloader.cpp
 )
 
 
@@ -712,6 +683,10 @@ set(MULTIMC_QRCS
 	resources/multimc/multimc.qrc
 	resources/pe_dark/pe_dark.qrc
 	resources/pe_light/pe_light.qrc
+	resources/pe_colored/pe_colored.qrc
+	resources/pe_blue/pe_blue.qrc
+	resources/OSX/OSX.qrc
+	resources/iOS/iOS.qrc
 	resources/instances/instances.qrc
 	resources/versions/versions.qrc
 )

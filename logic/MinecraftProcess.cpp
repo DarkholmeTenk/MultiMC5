@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Authors: Orochimarufan <orochimarufan.x3@gmail.com>
  *
@@ -41,13 +41,48 @@ MinecraftProcess::MinecraftProcess(InstancePtr inst) : m_instance(inst)
 			SLOT(finish(int, QProcess::ExitStatus)));
 
 	// prepare the process environment
-	QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+	QProcessEnvironment rawenv = QProcessEnvironment::systemEnvironment();
 
+	QProcessEnvironment env;
+
+	QStringList ignored = {"JAVA_ARGS", "CLASSPATH", "CONFIGPATH", "JAVA_HOME", "JRE_HOME"};
+	for(auto key: rawenv.keys())
+	{
+		auto value = rawenv.value(key);
+		// filter out dangerous java crap
+		if(ignored.contains(key))
+		{
+			QLOG_INFO() << "Env: ignoring" << key << value;
+			continue;
+		}
+		// filter MultiMC-related things
+		if(key.startsWith("QT_"))
+		{
+			QLOG_INFO() << "Env: ignoring" << key << value;
+			continue;
+		}
 #ifdef LINUX
-	// Strip IBus
-	// IBus is a Linux IME framework. For some reason, it breaks MC?
-	if (env.value("XMODIFIERS").contains(IBUS))
-		env.insert("XMODIFIERS", env.value("XMODIFIERS").replace(IBUS, ""));
+		// Do not pass LD_* variables to java. They were intended for MultiMC
+		if(key.startsWith("LD_"))
+		{
+			QLOG_INFO() << "Env: ignoring" << key << value;
+			continue;
+		}
+		// Strip IBus
+		// IBus is a Linux IME framework. For some reason, it breaks MC?
+		if (key == "XMODIFIERS" && value.contains(IBUS))
+		{
+			QString save = value;
+			value.replace(IBUS, "");
+			QLOG_INFO() << "Env: stripped" << IBUS << "from" << save << ":" << value;
+		}
+#endif
+		QLOG_INFO() << "Env: " << key << value;
+		env.insert(key, value);
+	}
+#ifdef LINUX
+	// HACK: Workaround for QTBUG-42500
+	env.insert("LD_LIBRARY_PATH", "");
 #endif
 
 	// export some infos
@@ -109,19 +144,41 @@ QString MinecraftProcess::censorPrivateInfo(QString in)
 // console window
 MessageLevel::Enum MinecraftProcess::guessLevel(const QString &line, MessageLevel::Enum level)
 {
-	if (line.contains("[INFO]") || line.contains("[CONFIG]") || line.contains("[FINE]") ||
-		line.contains("[FINER]") || line.contains("[FINEST]"))
-		level = MessageLevel::Message;
-	if (line.contains("[SEVERE]") || line.contains("[STDERR]"))
-		level = MessageLevel::Error;
-	if (line.contains("[WARNING]"))
-		level = MessageLevel::Warning;
-	if (line.contains("Exception in thread") || line.contains("    at "))
-		level = MessageLevel::Fatal;
-	if (line.contains("[DEBUG]"))
-		level = MessageLevel::Debug;
+	QRegularExpression re("\\[(?<timestamp>[0-9:]+)\\] \\[[^/]+/(?<level>[^\\]]+)\\]");
+	auto match = re.match(line);
+	if(match.hasMatch())
+	{
+		// New style logs from log4j
+		QString timestamp = match.captured("timestamp");
+		QString levelStr = match.captured("level");
+		if(levelStr == "INFO")
+			level = MessageLevel::Message;
+		if(levelStr == "WARN")
+			level = MessageLevel::Warning;
+		if(levelStr == "ERROR")
+			level = MessageLevel::Error;
+		if(levelStr == "FATAL")
+			level = MessageLevel::Fatal;
+		if(levelStr == "TRACE" || levelStr == "DEBUG")
+			level = MessageLevel::Debug;
+	}
+	else
+	{
+		// Old style forge logs
+		if (line.contains("[INFO]") || line.contains("[CONFIG]") || line.contains("[FINE]") ||
+			line.contains("[FINER]") || line.contains("[FINEST]"))
+			level = MessageLevel::Message;
+		if (line.contains("[SEVERE]") || line.contains("[STDERR]"))
+			level = MessageLevel::Error;
+		if (line.contains("[WARNING]"))
+			level = MessageLevel::Warning;
+		if (line.contains("[DEBUG]"))
+			level = MessageLevel::Debug;
+	}
 	if (line.contains("overwriting existing"))
-		level = MessageLevel::Fatal;
+		return MessageLevel::Fatal;
+	if (line.contains("Exception in thread") || line.contains(QRegularExpression("\\s+at ")))
+		return MessageLevel::Error;
 	return level;
 }
 
@@ -180,6 +237,7 @@ void MinecraftProcess::on_stdErr()
 	QByteArray data = readAllStandardError();
 	QString str = m_err_leftover + QString::fromLocal8Bit(data);
 
+	str.remove('\r');
 	QStringList lines = str.split("\n");
 	m_err_leftover = lines.takeLast();
 
@@ -191,6 +249,7 @@ void MinecraftProcess::on_stdOut()
 	QByteArray data = readAllStandardOutput();
 	QString str = m_out_leftover + QString::fromLocal8Bit(data);
 
+	str.remove('\r');
 	QStringList lines = str.split("\n");
 	m_out_leftover = lines.takeLast();
 
@@ -202,6 +261,7 @@ void MinecraftProcess::on_prepost_stdErr()
 	QByteArray data = m_prepostlaunchprocess.readAllStandardError();
 	QString str = m_err_leftover + QString::fromLocal8Bit(data);
 
+	str.remove('\r');
 	QStringList lines = str.split("\n");
 	m_err_leftover = lines.takeLast();
 
@@ -213,6 +273,7 @@ void MinecraftProcess::on_prepost_stdOut()
 	QByteArray data = m_prepostlaunchprocess.readAllStandardOutput();
 	QString str = m_out_leftover + QString::fromLocal8Bit(data);
 
+	str.remove('\r');
 	QStringList lines = str.split("\n");
 	m_out_leftover = lines.takeLast();
 

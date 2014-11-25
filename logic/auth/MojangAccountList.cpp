@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -183,10 +183,10 @@ QVariant MojangAccountList::headerData(int section, Qt::Orientation orientation,
 		switch (section)
 		{
 		case ActiveColumn:
-			return "Active?";
+			return tr("Active?");
 
 		case NameColumn:
-			return "Name";
+			return tr("Name");
 
 		default:
 			return QVariant();
@@ -196,7 +196,7 @@ QVariant MojangAccountList::headerData(int section, Qt::Orientation orientation,
 		switch (section)
 		{
 		case NameColumn:
-			return "The name of the version.";
+			return tr("The name of the version.");
 
 		default:
 			return QVariant();

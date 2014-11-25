@@ -1,8 +1,11 @@
 #include "LogPage.h"
 #include "ui_LogPage.h"
 
+#include "MultiMC.h"
+
 #include <QIcon>
 #include <QScrollBar>
+#include <QShortcut>
 
 #include "logic/MinecraftProcess.h"
 #include "gui/GuiUtil.h"
@@ -13,12 +16,32 @@ LogPage::LogPage(MinecraftProcess *proc, QWidget *parent)
 	ui->setupUi(this);
 	ui->tabWidget->tabBar()->hide();
 	connect(m_process, SIGNAL(log(QString, MessageLevel::Enum)), this,
-		SLOT(write(QString, MessageLevel::Enum)));
+			SLOT(write(QString, MessageLevel::Enum)));
+
+	// create the format and set its font
+	defaultFormat = new QTextCharFormat(ui->text->currentCharFormat());
+	QString fontFamily = MMC->settings()->get("ConsoleFont").toString();
+	bool conversionOk = false;
+	int fontSize = MMC->settings()->get("ConsoleFontSize").toInt(&conversionOk);
+	if(!conversionOk)
+	{
+		fontSize = 11;
+	}
+	defaultFormat->setFont(QFont(fontFamily, fontSize));
+
+	auto findShortcut = new QShortcut(QKeySequence(QKeySequence::Find), this);
+	connect(findShortcut, SIGNAL(activated()), SLOT(findActivated()));
+	auto findNextShortcut = new QShortcut(QKeySequence(QKeySequence::FindNext), this);
+	connect(findNextShortcut, SIGNAL(activated()), SLOT(findNextActivated()));
+	connect(ui->searchBar, SIGNAL(returnPressed()), SLOT(on_findButton_clicked()));
+	auto findPreviousShortcut = new QShortcut(QKeySequence(QKeySequence::FindPrevious), this);
+	connect(findPreviousShortcut, SIGNAL(activated()), SLOT(findPreviousActivated()));
 }
 
 LogPage::~LogPage()
 {
 	delete ui;
+	delete defaultFormat;
 }
 
 bool LogPage::apply()
@@ -46,30 +69,75 @@ void LogPage::on_btnClear_clicked()
 	ui->text->clear();
 }
 
-void LogPage::writeColor(QString text, const char *color, const char * background)
+void LogPage::on_trackLogCheckbox_clicked(bool checked)
 {
-	// append a paragraph
-	QString newtext;
-	newtext += "<span style=\"";
+	m_write_active = checked;
+}
+
+void LogPage::on_findButton_clicked()
+{
+	auto modifiers = QApplication::keyboardModifiers();
+	if (modifiers & Qt::ShiftModifier)
 	{
-		if (color)
-			newtext += QString("color:") + color + ";";
-		if (background)
-			newtext += QString("background-color:") + background + ";";
-		newtext += "font-family: monospace;";
+		findPreviousActivated();
 	}
-	newtext += "\">";
-	newtext += text.toHtmlEscaped();
-	newtext += "</span>";
-	ui->text->appendHtml(newtext);
+	else
+	{
+		findNextActivated();
+	}
+}
+
+void LogPage::findActivated()
+{
+	// focus the search bar if it doesn't have focus
+	if (!ui->searchBar->hasFocus())
+	{
+		auto searchForCursor = ui->text->textCursor();
+		auto searchForString = searchForCursor.selectedText();
+		if (searchForString.size())
+		{
+			ui->searchBar->setText(searchForString);
+		}
+		ui->searchBar->setFocus();
+		ui->searchBar->selectAll();
+	}
+}
+
+void LogPage::findNextActivated()
+{
+	auto toSearch = ui->searchBar->text();
+	if (toSearch.size())
+	{
+		ui->text->find(toSearch);
+	}
+}
+
+void LogPage::findPreviousActivated()
+{
+	auto toSearch = ui->searchBar->text();
+	if (toSearch.size())
+	{
+		ui->text->find(toSearch, QTextDocument::FindBackward);
+	}
 }
 
 void LogPage::write(QString data, MessageLevel::Enum mode)
 {
+	if (!m_write_active)
+	{
+		if (mode != MessageLevel::PrePost && mode != MessageLevel::MultiMC)
+		{
+			return;
+		}
+	}
+
+	// save the cursor so it can be restored.
+	auto savedCursor = ui->text->cursor();
+
 	QScrollBar *bar = ui->text->verticalScrollBar();
 	int max_bar = bar->maximum();
 	int val_bar = bar->value();
-	if(isVisible())
+	if (isVisible())
 	{
 		if (m_scroll_active)
 		{
@@ -86,35 +154,63 @@ void LogPage::write(QString data, MessageLevel::Enum mode)
 	QStringList filtered;
 	for (QString &paragraph : paragraphs)
 	{
-		// Quick hack for
-		if(paragraph.contains("Detected an attempt by a mod null to perform game activity during mod construction"))
-			continue;
-		filtered.append(paragraph.trimmed());
+		//TODO: implement filtering here.
+		filtered.append(paragraph);
 	}
 	QListIterator<QString> iter(filtered);
-	if (mode == MessageLevel::MultiMC)
-		while (iter.hasNext())
-			writeColor(iter.next(), "blue", 0);
-	else if (mode == MessageLevel::Error)
-		while (iter.hasNext())
-			writeColor(iter.next(), "red", 0);
-	else if (mode == MessageLevel::Warning)
-		while (iter.hasNext())
-			writeColor(iter.next(), "orange", 0);
-	else if (mode == MessageLevel::Fatal)
-		while (iter.hasNext())
-			writeColor(iter.next(), "red", "black");
-	else if (mode == MessageLevel::Debug)
-		while (iter.hasNext())
-			writeColor(iter.next(), "green", 0);
-	else if (mode == MessageLevel::PrePost)
-		while (iter.hasNext())
-			writeColor(iter.next(), "grey", 0);
-	// TODO: implement other MessageLevels
-	else
-		while (iter.hasNext())
-			writeColor(iter.next(), 0, 0);
-	if(isVisible())
+	QTextCharFormat format(*defaultFormat);
+
+	switch(mode)
+	{
+		case MessageLevel::MultiMC:
+		{
+			format.setForeground(QColor("blue"));
+			break;
+		}
+		case MessageLevel::Debug:
+		{
+			format.setForeground(QColor("green"));
+			break;
+		}
+		case MessageLevel::Warning:
+		{
+			format.setForeground(QColor("orange"));
+			break;
+		}
+		case MessageLevel::Error:
+		{
+			format.setForeground(QColor("red"));
+			break;
+		}
+		case MessageLevel::Fatal:
+		{
+			format.setForeground(QColor("red"));
+			format.setBackground(QColor("black"));
+			break;
+		}
+		case MessageLevel::PrePost:
+		{
+			format.setForeground(QColor("grey"));
+			break;
+		}
+		case MessageLevel::Info:
+		case MessageLevel::Message:
+		default:
+		{
+			// do nothing, keep original
+		}
+	}
+
+	while (iter.hasNext())
+	{
+		// append a paragraph/line
+		auto workCursor = ui->text->textCursor();
+		workCursor.movePosition(QTextCursor::End);
+		workCursor.insertText(iter.next(), format);
+		workCursor.insertBlock();
+	}
+
+	if (isVisible())
 	{
 		if (m_scroll_active)
 		{
@@ -122,4 +218,5 @@ void LogPage::write(QString data, MessageLevel::Enum mode)
 		}
 		m_last_scroll_value = bar->value();
 	}
+	ui->text->setCursor(savedCursor);
 }

@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QDir>
+#include <QTextCharFormat>
 
 #include <pathutils.h>
 
@@ -59,6 +60,8 @@ MultiMCPage::MultiMCPage(QWidget *parent) : QWidget(parent), ui(new Ui::MultiMCP
 	resizer->addWidgetsFromLayout(ui->groupBox->layout(), 1);
 	resizer->addWidgetsFromLayout(ui->foldersBox->layout(), 1);
 
+	defaultFormat = new QTextCharFormat(ui->fontPreview->currentCharFormat());
+
 	loadSettings();
 
 	QObject::connect(MMC->updateChecker().get(), &UpdateChecker::channelListLoaded, this,
@@ -72,6 +75,8 @@ MultiMCPage::MultiMCPage(QWidget *parent) : QWidget(parent), ui(new Ui::MultiMCP
 	{
 		MMC->updateChecker()->updateChanList(false);
 	}
+	connect(ui->fontSizeBox, SIGNAL(valueChanged(int)), SLOT(refreshFontPreview()));
+	connect(ui->consoleFont, SIGNAL(currentFontChanged(QFont)), SLOT(refreshFontPreview()));
 }
 
 MultiMCPage::~MultiMCPage()
@@ -276,11 +281,31 @@ void MultiMCPage::applySettings()
 	case 2:
 		s->set("IconTheme", "pe_light");
 		break;
+	case 3:
+		s->set("IconTheme", "pe_blue");
+		break;
+	case 4:
+		s->set("IconTheme", "pe_colored");
+		break;
+	case 5:
+		s->set("IconTheme", "OSX");
+		break;
+	case 6:
+		s->set("IconTheme", "iOS");
+		break;
 	case 0:
 	default:
 		s->set("IconTheme", "multimc");
 		break;
 	}
+
+	// Console settings
+	s->set("ShowConsole", ui->showConsoleCheck->isChecked());
+	s->set("AutoCloseConsole", ui->autoCloseConsoleCheck->isChecked());
+	QString consoleFontFamily = ui->consoleFont->currentFont().family();
+	s->set("ConsoleFont", consoleFontFamily);
+	s->set("ConsoleFontSize", ui->fontSizeBox->value());
+
 	// FTB
 	s->set("TrackFTBInstances", ui->trackFtbBox->isChecked());
 	s->set("FTBLauncherRoot", ui->ftbLauncherBox->text());
@@ -333,10 +358,43 @@ void MultiMCPage::loadSettings()
 	{
 		ui->themeComboBox->setCurrentIndex(2);
 	}
+	else if (theme == "pe_blue")
+	{
+		ui->themeComboBox->setCurrentIndex(3);
+	}
+	else if (theme == "pe_colored")
+	{
+		ui->themeComboBox->setCurrentIndex(4);
+	}
+	else if (theme == "OSX")
+	{
+		ui->themeComboBox->setCurrentIndex(5);
+	}
+	else if (theme == "iOS")
+	{
+		ui->themeComboBox->setCurrentIndex(6);
+	}
 	else
 	{
 		ui->themeComboBox->setCurrentIndex(0);
 	}
+
+	// Console settings
+	ui->showConsoleCheck->setChecked(s->get("ShowConsole").toBool());
+	ui->autoCloseConsoleCheck->setChecked(s->get("AutoCloseConsole").toBool());
+	QString fontFamily = MMC->settings()->get("ConsoleFont").toString();
+	QFont consoleFont(fontFamily);
+	ui->consoleFont->setCurrentFont(consoleFont);
+
+	bool conversionOk = true;
+	int fontSize = MMC->settings()->get("ConsoleFontSize").toInt(&conversionOk);
+	if(!conversionOk)
+	{
+		fontSize = 11;
+	}
+	ui->fontSizeBox->setValue(fontSize);
+	refreshFontPreview();
+
 	// FTB
 	ui->trackFtbBox->setChecked(s->get("TrackFTBInstances").toBool());
 	ui->ftbLauncherBox->setText(s->get("FTBLauncherRoot").toString());
@@ -357,5 +415,39 @@ void MultiMCPage::loadSettings()
 	else
 	{
 		ui->sortByNameBtn->setChecked(true);
+	}
+}
+
+void MultiMCPage::refreshFontPreview()
+{
+	int fontSize = ui->fontSizeBox->value();
+	QString fontFamily = ui->consoleFont->currentFont().family();
+	ui->fontPreview->clear();
+	defaultFormat->setFont(QFont(fontFamily, fontSize));
+	{
+		QTextCharFormat format(*defaultFormat);
+		format.setForeground(QColor("red"));
+		// append a paragraph/line
+		auto workCursor = ui->fontPreview->textCursor();
+		workCursor.movePosition(QTextCursor::End);
+		workCursor.insertText(tr("[Something/ERROR] A spooky error!"), format);
+		workCursor.insertBlock();
+	}
+	{
+		QTextCharFormat format(*defaultFormat);
+		// append a paragraph/line
+		auto workCursor = ui->fontPreview->textCursor();
+		workCursor.movePosition(QTextCursor::End);
+		workCursor.insertText(tr("[Test/INFO] A harmless message..."), format);
+		workCursor.insertBlock();
+	}
+	{
+		QTextCharFormat format(*defaultFormat);
+		format.setForeground(QColor("orange"));
+		// append a paragraph/line
+		auto workCursor = ui->fontPreview->textCursor();
+		workCursor.movePosition(QTextCursor::End);
+		workCursor.insertText(tr("[Something/WARN] A not so spooky warning."), format);
+		workCursor.insertBlock();
 	}
 }

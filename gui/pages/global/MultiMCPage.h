@@ -1,4 +1,4 @@
-/* Copyright 2013 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "logic/java/JavaChecker.h"
 #include "gui/pages/BasePage.h"
 
+class QTextCharFormat;
 class SettingsObject;
 
 namespace Ui
@@ -78,7 +79,12 @@ slots:
 	 */
 	void refreshUpdateChannelDesc();
 
-    void updateChannelSelectionChanged(int index);
+	/*!
+	 * Updates the font preview
+	 */
+	void refreshFontPreview();
+
+	void updateChannelSelectionChanged(int index);
 
 private:
 	Ui::MultiMCPage *ui;
@@ -87,4 +93,7 @@ private:
 	 * Stores the currently selected update channel.
 	 */
 	QString m_currentUpdateChannel;
+
+	// default format for the font preview...
+	QTextCharFormat *defaultFormat;
 };

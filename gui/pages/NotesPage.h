@@ -1,4 +1,4 @@
-/* Copyright 2014 MultiMC Contributors
+/* Copyright 2013-2014 MultiMC Contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,10 @@ public:
 	}
 	virtual QIcon icon() const override
 	{
-		return QIcon::fromTheme("news");
+		auto icon = QIcon::fromTheme("notes");
+		if(icon.isNull())
+			icon = QIcon::fromTheme("news");
+		return icon;
 	}
 	virtual QString id() const override
 	{

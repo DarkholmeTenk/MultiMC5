@@ -47,6 +47,8 @@
 #include "logger/QsLog.h"
 #include "logger/QsLogDest.h"
 
+#include "logic/trans/TranslationDownloader.h"
+
 #ifdef Q_OS_WIN32
 #include <windows.h>
 static const int APPDATA_BUFFER_SIZE = 1024;
@@ -54,7 +56,7 @@ static const int APPDATA_BUFFER_SIZE = 1024;
 
 using namespace Util::Commandline;
 
-MultiMC::MultiMC(int &argc, char **argv, bool root_override) : QApplication(argc, argv)
+MultiMC::MultiMC(int &argc, char **argv, bool test_mode) : QApplication(argc, argv)
 {
 	setOrganizationName("MultiMC");
 	setApplicationName("MultiMC5");
@@ -147,7 +149,8 @@ MultiMC::MultiMC(int &argc, char **argv, bool root_override) : QApplication(argc
 		return;
 	}
 
-	if (root_override)
+	// in test mode, root path is the same as the binary path.
+	if (test_mode)
 	{
 		rootPath = binPath;
 	}
@@ -178,7 +181,7 @@ MultiMC::MultiMC(int &argc, char **argv, bool root_override) : QApplication(argc
 	// init the logger
 	initLogger();
 
-	QLOG_INFO() << "MultiMC 5, (c) 2013 MultiMC Contributors";
+	QLOG_INFO() << "MultiMC 5, (c) 2013-2014 MultiMC Contributors";
 	QLOG_INFO() << "Version                    : " << BuildConfig.VERSION_STR;
 	QLOG_INFO() << "Git commit                 : " << BuildConfig.GIT_COMMIT;
 	if (adjustedBy.size())
@@ -196,7 +199,7 @@ MultiMC::MultiMC(int &argc, char **argv, bool root_override) : QApplication(argc
 	QLOG_INFO() << "Static data path           : " << staticDataPath;
 
 	// load settings
-	initGlobalSettings();
+	initGlobalSettings(test_mode);
 
 	// load translations
 	initTranslations();
@@ -212,6 +215,8 @@ MultiMC::MultiMC(int &argc, char **argv, bool root_override) : QApplication(argc
 
 	// initialize the status checker
 	m_statusChecker.reset(new StatusChecker());
+
+	m_translationChecker.reset(new TranslationDownloader());
 
 	// and instances
 	auto InstDirSetting = m_settings->getSetting("InstanceDir");
@@ -241,6 +246,8 @@ MultiMC::MultiMC(int &argc, char **argv, bool root_override) : QApplication(argc
 
 	// create the global network manager
 	m_qnam.reset(new QNetworkAccessManager(this));
+
+	m_translationChecker->downloadTranslations();
 
 	// init proxy settings
 	updateProxySettings();
@@ -351,12 +358,9 @@ void MultiMC::initLogger()
 	logger.addDestination(m_debugDestination.get());
 	// log all the things
 	logger.setLoggingLevel(QsLogging::TraceLevel);
-	loggerInitialized = true;
 }
 
-bool loggerInitialized = false;
-
-void MultiMC::initGlobalSettings()
+void MultiMC::initGlobalSettings(bool test_mode)
 {
 	m_settings.reset(new INISettingsObject("multimc.cfg", this));
 	// Updates
@@ -369,6 +373,38 @@ void MultiMC::initGlobalSettings()
 
 	// Notifications
 	m_settings->registerSetting("ShownNotifications", QString());
+
+	// Remembered state
+	m_settings->registerSetting("LastUsedGroupForNewInstance", QString());
+
+	QString defaultMonospace;
+#ifdef Q_OS_WIN32
+	defaultMonospace = "Lucida Console";
+#elif defined(Q_OS_MAC)
+	defaultMonospace = "Menlo";
+#else
+	defaultMonospace = "Monospace";
+#endif
+	if(!test_mode)
+	{
+		// resolve the font so the default actually matches
+		QFont consoleFont;
+		consoleFont.setFamily(defaultMonospace);
+		consoleFont.setStyleHint(QFont::Monospace);
+		consoleFont.setFixedPitch(true);
+		QFontInfo consoleFontInfo(consoleFont);
+		QString resolvedDefaultMonospace = consoleFontInfo.family();
+		QFont resolvedFont(resolvedDefaultMonospace);
+		QLOG_DEBUG() << "Detected default console font:" << resolvedDefaultMonospace
+			<< ", substitutions:" << resolvedFont.substitutions().join(',');
+		m_settings->registerSetting("ConsoleFont", resolvedDefaultMonospace);
+	}
+	else
+	{
+		// in test mode, we don't have UI, so we don't do any font resolving
+		m_settings->registerSetting("ConsoleFont", defaultMonospace);
+	}
+	m_settings->registerSetting("ConsoleFontSize", 11);
 
 	// FTB
 	m_settings->registerSetting("TrackFTBInstances", false);
@@ -537,6 +573,7 @@ void MultiMC::initHttpMetaCache()
 	m_metacache->addBase("liteloader", QDir("mods/liteloader").absolutePath());
 	m_metacache->addBase("skins", QDir("accounts/skins").absolutePath());
 	m_metacache->addBase("root", QDir(root()).absolutePath());
+	m_metacache->addBase("translations", QDir(staticData() + "/translations").absolutePath());
 	m_metacache->Load();
 }
 
